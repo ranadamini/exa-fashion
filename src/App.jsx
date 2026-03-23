@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { searchSuppliers, searchBrands, scoutSearch, parseResults } from './api';
+import { searchSuppliers, searchBrands, scoutSearch, parseResults, synthesizeResults } from './api';
 import './styles.css';
 
 const EXAMPLES = [
@@ -81,6 +81,9 @@ export default function App() {
   const [results, setResults] = useState(null);
   const [resultContext, setResultContext] = useState('');
 
+  const [synthLoading, setSynthLoading] = useState(false);
+  const [synthesis, setSynthesis] = useState(null);
+
   const [sGarment, setSGarment] = useState(['Any']);
   const [sGarmentFree, setSGarmentFree] = useState('');
   const [sRegion, setSRegion] = useState(['Any']);
@@ -100,6 +103,7 @@ export default function App() {
   const [scoutQuery, setScoutQuery] = useState('');
 
   const handleSearch = useCallback(async () => {
+    setSynthesis(null);
     setLoading(true);
     setError(null);
     setResults(null);
@@ -132,7 +136,21 @@ export default function App() {
         setResultContext(scoutQuery.slice(0, 60) + (scoutQuery.length > 60 ? '…' : ''));
       }
 
-      setResults(parseResults(exaResults));
+      const parsed = parseResults(exaResults);
+      setResults(parsed);
+
+      // Generate synthesis
+      if (parsed.length > 0) {
+        setSynthLoading(true);
+        const queryText = tab === 'scout' ? scoutQuery :
+          tab === 'supplier' ? [...sGarment.filter(g => g !== 'Any'), ...sRegion.filter(r => r !== 'Any'), ...sCerts.filter(c => c !== 'None required')].join(' ') || 'All suppliers' :
+          [...bCategory.filter(c => c !== 'Any'), ...bAesthetic.filter(a => a !== 'Any'), ...bPrice.filter(p => p !== 'Any'), ...bDist.filter(d => d !== 'Any')].join(' ') || 'All brands';
+        setTimeout(() => {
+          synthesizeResults(queryText, parsed, tab)
+            .then(s => { setSynthesis(s); setSynthLoading(false); })
+            .catch(() => { setSynthesis(null); setSynthLoading(false); });
+        }, 0);
+      }
     } catch (err) {
       setError(err.message || 'Search failed');
     } finally {
@@ -260,6 +278,16 @@ export default function App() {
                 <span className="results-count">{results.length} results</span>
                 <span className="results-context">{resultContext}</span>
               </div>
+              {synthLoading && !synthesis && (
+                <div className="synthesis-box loading">
+                  <p>Synthesizing results...</p>
+                </div>
+              )}
+              {synthesis && (
+                <div className="synthesis-box">
+                  <p>{synthesis}</p>
+                </div>
+              )}
               <div className="results-grid">
                 {results.map((item, i) => <ResultCard key={i} item={item} index={i} />)}
               </div>

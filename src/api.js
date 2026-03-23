@@ -153,3 +153,37 @@ export function parseResults(exaResults) {
       return true;
     });
 }
+export async function synthesizeResults(query, results, tab) {
+  const resultsText = results.slice(0, 5).map(r => `${r.title} (${r.domain}): ${r.description.slice(0, 150)}`).join('\n');
+  
+  const systemPrompt = tab === 'supplier'
+    ? 'You are a fashion sourcing analyst. Summarize ALL these supplier search results in 2-3 sentences. Highlight key patterns: regions represented, certifications, specializations, and any standout candidates. Be specific and concise.  Do not use markdown, headers, bold, or bullet points. Write plain text only.'
+    : tab === 'brand'
+    ? 'You are a fashion market analyst. Summarize ALL these brand search results in 2-3 sentences. Highlight key patterns: price positioning, aesthetics, markets, distribution, and any standout brands. Be specific and concise.  Do not use markdown, headers, bold, or bullet points. Write plain text only.'
+    : 'You are a fashion industry analyst. Summarize ALL these search results in 2-3 sentences. Highlight key patterns and standout findings. Be specific and concise.  Do not use markdown, headers, bold, or bullet points. Write plain text only.';
+
+  const synthesizeUrl = '/api/synthesize';
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+
+  const response = await fetch(synthesizeUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    signal: controller.signal,
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 300,
+      system: systemPrompt,
+      messages: [
+        { role: 'user', content: `Search query: "${query}"\n\nResults:\n${resultsText}` }
+      ],
+    }),
+  });
+
+  clearTimeout(timeout);
+  const data = await response.json();
+  return data.content?.[0]?.text || null;
+}
