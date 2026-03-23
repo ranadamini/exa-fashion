@@ -1,4 +1,4 @@
-const API_BASE = 'https://api.exa.ai';
+const API_BASE = import.meta.env.DEV ? 'https://api.exa.ai' : '/api';
 
 function getApiKey() {
   const key = import.meta.env.VITE_EXA_API_KEY;
@@ -66,7 +66,7 @@ async function exaFetch(endpoint, body) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': getApiKey(),
+      ...(import.meta.env.DEV ? { 'x-api-key': getApiKey() } : {}),
     },
     body: JSON.stringify(body),
   });
