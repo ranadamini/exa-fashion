@@ -209,7 +209,7 @@ export default function App() {
               </div>
               <div className="form-group">
                 <span className="form-label">Material</span>
-                <input className="text-field" placeholder="e.g. organic cotton, merino wool blend, recycled polyester..." value={sMaterial} onChange={e => setSMaterial(e.target.value)} />
+                <input className="text-field" placeholder="e.g. organic cotton, wool, recycled polyester..." value={sMaterial} onChange={e => setSMaterial(e.target.value)} />
               </div>
               <div className="form-group">
                 <span className="form-label">Price / MOQ</span>
